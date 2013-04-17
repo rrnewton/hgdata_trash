@@ -96,9 +96,11 @@ data CellType = NUMBER | STRING | LOCATION | DATETIME
 
 -- | The host for API access.
 fusiontableHost :: String
--- fusiontableHost = "https://www.googleapis.com/fusiontables/v1"
--- fusiontableHost = "www.googleapis.com"
+#ifdef DEBUG_FUSIONTABLE
 fusiontableHost = "localhost"
+#else 
+fusiontableHost = "www.googleapis.com"
+#endif
 
 -- | The API version used here.
 fusiontableApi :: (String, String)

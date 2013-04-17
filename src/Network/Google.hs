@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 -----------------------------------------------------------------------------
 --
 -- Module      :  Network.Google
@@ -74,15 +75,19 @@ makeRequest accessToken (apiName, apiVersion) method (host, path) =
   -- TODO: In principle, we should UTF-8 encode the bytestrings packed below.
   def {
     method = BS8.pack method
+#ifdef DEBUG_FUSIONTABLE
   , secure = False
+#else
+  , secure = True
+#endif
   , host = BS8.pack host
   , port = 443
   , path = BS8.pack path
   , requestHeaders = [
-    --   (makeHeaderName apiName, BS8.pack apiVersion)
-    -- , (makeHeaderName "Authorization",  BS8.append (BS8.pack "OAuth ") accessToken)
-
-     (makeHeaderName "Authorization",  BS8.append (BS8.pack "Bearer ") accessToken) 
+     (makeHeaderName apiName, BS8.pack apiVersion),
+     (makeHeaderName "Authorization",  BS8.append (BS8.pack "OAuth ") accessToken)
+      -- RRN: Changing this to "Bearer" to match what I saw in the API explorer:
+      -- (makeHeaderName "Authorization",  BS8.append (BS8.pack "Bearer ") accessToken) 
     ]
   }
 
