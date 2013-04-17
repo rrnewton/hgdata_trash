@@ -74,13 +74,15 @@ makeRequest accessToken (apiName, apiVersion) method (host, path) =
   -- TODO: In principle, we should UTF-8 encode the bytestrings packed below.
   def {
     method = BS8.pack method
-  , secure = True
+  , secure = False
   , host = BS8.pack host
   , port = 443
   , path = BS8.pack path
   , requestHeaders = [
-      (makeHeaderName apiName, BS8.pack apiVersion)
-    , (makeHeaderName "Authorization",  BS8.append (BS8.pack "OAuth ") accessToken)
+    --   (makeHeaderName apiName, BS8.pack apiVersion)
+    -- , (makeHeaderName "Authorization",  BS8.append (BS8.pack "OAuth ") accessToken)
+
+     (makeHeaderName "Authorization",  BS8.append (BS8.pack "Bearer ") accessToken) 
     ]
   }
 

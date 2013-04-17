@@ -1,5 +1,6 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE CPP #-}
 -----------------------------------------------------------------------------
 --
 -- Module      :  Network.Google.FusionTables
@@ -86,12 +87,18 @@ instance Out ColumnMetadata
 -- | ID for a specific fusion table 
 type TableId = FTString
 
+-- | Designed to mirror the types listed here:
+--   <https://developers.google.com/fusiontables/docs/v1/reference/column>
+data CellType = NUMBER | STRING | LOCATION | DATETIME
+  deriving (Show,Eq,Ord,Read)
+
 --------------------------------------------------------------------------------
 
 -- | The host for API access.
 fusiontableHost :: String
 -- fusiontableHost = "https://www.googleapis.com/fusiontables/v1"
-fusiontableHost = "www.googleapis.com"
+-- fusiontableHost = "www.googleapis.com"
+fusiontableHost = "localhost"
 
 -- | The API version used here.
 fusiontableApi :: (String, String)
@@ -99,23 +106,30 @@ fusiontableApi :: (String, String)
 -- the old GData APIs.
 fusiontableApi = ("Gdata-version", "999")
 
+--------------------------------------------------------------------------------
+
 -- | Create an (exportable) table with a given name and list of columns.
 createTable :: AccessToken -> String -> [(FTString,CellType)] -> IO TableId
 createTable tok name cols =
-  do putStrLn$ "CREATE TABLE REQUEST" ++show req
+  do 
+     -- let raw = "https://www.googleapis.com/fusiontables/v1/tables?access_token="++
+     --           H.urlEncodeVars [("access_token", B.unpack tok)]
+     -- putStrLn$ "RAW request: "++raw  
 
-     let raw = "https://www.googleapis.com/fusiontables/v1/tables?access_token="++
-               H.urlEncodeVars [("access_token", B.unpack tok)]
-     putStrLn$ "RAW request: "++raw  
+     -- initReq <- parseUrl "https://www.googleapis.com/fusiontables/v1/tables"
+     -- let req = initReq
+     --           { method = B.pack "POST"
+     --           , requestBody = RequestBodyBS (B.pack json)
+     --           }
+#if 0
+     body <- readFile "../body.txt"    
+     let req0 = req
+     let req  = req0 { requestBody = RequestBodyLBS (BL.pack body) }
+#endif
+     putStrLn$ "CREATE TABLE REQUEST:\n" ++show req
 
-     initReq <- parseUrl "http://www.example.com/path"
-     let req = initReq
-               { method = B.pack "POST"
-               , requestBody = RequestBodyBS (B.pack json)
-               }
-
---  print =<< C.curlPost postStr []
-
+     let RequestBodyLBS bstr = requestBody req
+     putStrLn$ "BODY:\n" ++ BL.unpack bstr
      doRequest req
  where
    req = appendBody (BL.pack json)
@@ -128,21 +142,16 @@ createTable tok name cols =
    -- coljson = render$ pp_value$ JSArray (map fn cols)
 
    json = render$ pp_value$ JSObject$ toJSObject$
-          [ ("name",str name)
+          [ ("columns", colsJS)
           , ("isExportable", JSBool True)
-          , ("columns", colsJS) ]
+          , ("name",str name) ]
    colsJS = JSArray (map fn cols)
    fn (colName, colTy) = JSObject$ 
      toJSObject [ ("name", str colName)
-                , ("kind", str "fusiontables#column")  
+--                , ("kind", str "fusiontables#column")  
                 , ("type", str$ show colTy) ]
    str = JSString . toJSString
 
-
--- | Designed to mirror the types listed here:
---   <https://developers.google.com/fusiontables/docs/v1/reference/column>
-data CellType = NUMBER | STRING | LOCATION | DATETIME
-  deriving (Show,Eq,Ord,Read)
 
 -- | List all tables belonging to a user.
 --   See <https://developers.google.com/fusiontables/docs/v1/reference/table/list>.
@@ -229,9 +238,22 @@ insertRows tok tid cols rows =
    singQuote x = "'"++x++"'"
 
 
--- Implement a larger quantity of rows, but with the caveat that the number and order
+-- | Implement a larger quantity of rows, but with the caveat that the number and order
 -- of columns must exactly match the schema of the fusion table on the server.
-bulkImportRows = error "implement bulkImportRows"
+-- `bulkImportRows` will perform a listing of the columns to verify this before uploading.
+bulkImportRows :: AccessToken -> TableId
+              -> [FTString]   -- ^ Which columns to write.
+              -> [[FTString]] -- ^ Rows 
+              -> IO ()
+bulkImportRows tok tid cols rows = do 
+  -- listColumns
+
+  let csv = "38"
+      req = appendBody (BL.pack csv)
+         (makeRequest tok fusiontableApi "POST"
+           (fusiontableHost, "fusiontables/v1/tables/"++tid++"/import" ))
+  
+  error "implement bulkImportRows"
 
 -- TODO: provide some basic select functionality
 filterRows = error "implement filterRows"
