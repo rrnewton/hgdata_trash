@@ -40,7 +40,7 @@ import           Data.Maybe (mapMaybe)
 import           Data.List as L
 import qualified Data.ByteString.Char8 as B
 import qualified Data.ByteString.Lazy.Char8 as BL
-import           Network.Google (AccessToken, ProjectId, doRequest, makeRequest, appendBody)
+import           Network.Google (AccessToken, ProjectId, doRequest, makeRequest, appendBody, appendHeaders)
 import           Network.HTTP.Conduit (Request(..), RequestBody(..),parseUrl)
 import qualified Network.HTTP as H
 import           Text.XML.Light (Element(elContent), QName(..), filterChildrenName, findChild, strContent)
@@ -134,9 +134,10 @@ createTable tok name cols =
      putStrLn$ "BODY:\n" ++ BL.unpack bstr
      doRequest req
  where
-   req = appendBody (BL.pack json)
-         (makeRequest tok fusiontableApi "POST"
-           (fusiontableHost, "fusiontables/v1/tables" ))
+   req = appendHeaders [("Content-Type", "application/json")] $
+          appendBody (BL.pack json)
+          (makeRequest tok fusiontableApi "POST"
+            (fusiontableHost, "fusiontables/v1/tables" ))
    json :: String
 --    kind: \"fusiontables#table\"
 --   json = printf "{ name: %s, isExportable: true, columns: %s }" nameJS coljson
